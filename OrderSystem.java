@@ -1,5 +1,7 @@
 import java.util.ArrayList;
 import java.util.List;
+import com.google.inject.Guice;
+import com.google.inject.Injector;
 
 // Інтерфейс для оплати
 interface Payable {
@@ -31,10 +33,12 @@ abstract class User {
 class Client extends User implements Payable {
     private String contactInfo;
     private Order currentOrder;
+    private ClientService clientService;
 
-    public Client(int id, String name, String contactInfo) {
+    public Client(int id, String name, String contactInfo, ClientService clientService) {
         super(id, name);
         this.contactInfo = contactInfo;
+        this.clientService = clientService;
     }
 
     public Request createRequest(String description) {
@@ -46,6 +50,7 @@ class Client extends User implements Payable {
         System.out.println(getName() + " підтвердив(ла) замовлення №" + order.getId());
         order.confirm();
         currentOrder = order;
+        clientService.saveOrder(order);
     }
 
     @Override
@@ -189,6 +194,14 @@ class Order {
     public double getDeposit() {
         return deposit;
     }
+
+    public String getDate() {
+        return date;
+    }
+
+    public String getStatus() {
+        return status;
+    }
 }
 
 // Клас Платіжна система
@@ -214,7 +227,9 @@ class PaymentSystem {
 // Головний клас системи
 public class OrderSystem {
     public static void main(String[] args) {
-        Client client = new Client(1, "Вадим Комиш", "vadym@example.com");
+        Injector injector = Guice.createInjector(new RenovationModule());
+        ClientFactory clientFactory = injector.getInstance(ClientFactory.class);
+        Client client = clientFactory.create(1, "Вадим Комиш", "vadym@example.com");
         Master master = new Master(2, "Олександр Майстер", "Сантехнік");
 
         Request request = client.createRequest("Полагодити кухонний кран");
